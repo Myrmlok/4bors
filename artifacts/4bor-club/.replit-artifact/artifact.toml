@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "4BOR Клуб"
+description = "Закрытый профессиональный клуб 4BOR для дилеров и коллекционеров нумизматики: каталог, аукционы, эксклюзивные предложения, стикеры, новости, форум и ролевой доступ."
+version = "1.0.0"
+id = "artifacts/4bor-club"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22995
+
+[services.development]
+run = "pnpm --filter @workspace/4bor-club run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/4bor-club", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/4bor-club/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22995"
+BASE_PATH = "/"

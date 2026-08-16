@@ -1,0 +1,1224 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: 4BOR Club API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: themes
+  - name: groups
+  - name: lots
+  - name: bids
+  - name: stickers
+  - name: news
+  - name: activity
+  - name: admin
+  - name: cart
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+
+  /auth/invite/{token}:
+    get:
+      operationId: validateInvite
+      tags: [auth]
+      summary: Validate invite token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Valid invite
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteInfo"
+        "404":
+          description: Invalid token
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register via invite link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid input
+
+  # THEMES
+  /themes:
+    get:
+      operationId: listThemes
+      tags: [themes]
+      summary: List all themes
+      responses:
+        "200":
+          description: List of themes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Theme"
+
+  /themes/{id}:
+    get:
+      operationId: getTheme
+      tags: [themes]
+      summary: Get theme by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Theme
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Theme"
+
+  # GROUPS
+  /themes/{themeId}/groups:
+    get:
+      operationId: listGroups
+      tags: [groups]
+      summary: List groups for theme
+      parameters:
+        - name: themeId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+
+  # LOTS
+  /lots:
+    get:
+      operationId: listLots
+      tags: [lots]
+      summary: List lots
+      parameters:
+        - name: groupId
+          in: query
+          schema:
+            type: number
+        - name: sectionType
+          in: query
+          schema:
+            type: string
+        - name: themeId
+          in: query
+          schema:
+            type: number
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Lots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LotList"
+    post:
+      operationId: createLot
+      tags: [lots]
+      summary: Create lot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LotInput"
+      responses:
+        "201":
+          description: Created lot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lot"
+
+  /lots/{id}:
+    get:
+      operationId: getLot
+      tags: [lots]
+      summary: Get lot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Lot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lot"
+    patch:
+      operationId: updateLot
+      tags: [lots]
+      summary: Update lot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LotPatch"
+      responses:
+        "200":
+          description: Updated lot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lot"
+    delete:
+      operationId: deleteLot
+      tags: [lots]
+      summary: Delete lot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  /lots/{id}/purchase:
+    post:
+      operationId: purchaseLot
+      tags: [lots]
+      summary: Purchase fixed-price lot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseInput"
+      responses:
+        "200":
+          description: Purchased
+
+  # BIDS
+  /lots/{id}/bids:
+    get:
+      operationId: listBids
+      tags: [bids]
+      summary: List bids for lot (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Bids
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bid"
+    post:
+      operationId: placeBid
+      tags: [bids]
+      summary: Place a bid
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BidInput"
+      responses:
+        "201":
+          description: Bid placed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bid"
+
+  # STICKERS
+  /stickers:
+    get:
+      operationId: listStickers
+      tags: [stickers]
+      summary: List active stickers
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Stickers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sticker"
+    post:
+      operationId: createSticker
+      tags: [stickers]
+      summary: Create sticker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StickerInput"
+      responses:
+        "201":
+          description: Created sticker
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sticker"
+
+  /stickers/{id}/close:
+    post:
+      operationId: closeSticker
+      tags: [stickers]
+      summary: Close sticker
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Closed
+
+  /stickers/{id}/respond:
+    post:
+      operationId: respondToSticker
+      tags: [stickers]
+      summary: Respond to sticker
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StickerResponseInput"
+      responses:
+        "201":
+          description: Response sent
+
+  # NEWS
+  /news:
+    get:
+      operationId: listNews
+      tags: [news]
+      summary: List news
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: News
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NewsItem"
+    post:
+      operationId: createNews
+      tags: [news]
+      summary: Create news (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsItem"
+
+  /news/{id}:
+    patch:
+      operationId: updateNews
+      tags: [news]
+      summary: Update news (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsPatch"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsItem"
+    delete:
+      operationId: deleteNews
+      tags: [news]
+      summary: Delete news (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  # ACTIVITY & STATS
+  /activity:
+    get:
+      operationId: listActivity
+      tags: [activity]
+      summary: List recent activity
+      responses:
+        "200":
+          description: Activity items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /stats/online:
+    get:
+      operationId: getOnlineCount
+      tags: [activity]
+      summary: Get online users count
+      responses:
+        "200":
+          description: Online count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnlineStats"
+
+  /stats/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [activity]
+      summary: Dashboard statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  # ADMIN
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [admin]
+      summary: List all users (admin)
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /admin/users/{id}:
+    patch:
+      operationId: updateUser
+      tags: [admin]
+      summary: Update user (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPatch"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /admin/lots:
+    get:
+      operationId: listAdminLots
+      tags: [admin]
+      summary: List all lots regardless of status (admin)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Lots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LotList"
+
+  /admin/invite-links:
+    get:
+      operationId: listInviteLinks
+      tags: [admin]
+      summary: List invite links (admin)
+      responses:
+        "200":
+          description: Invite links
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InviteLink"
+    post:
+      operationId: createInviteLink
+      tags: [admin]
+      summary: Create invite link (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteLinkInput"
+      responses:
+        "201":
+          description: Created link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteLink"
+
+  # CART
+  /cart:
+    get:
+      operationId: getCart
+      tags: [cart]
+      summary: Get cart
+      responses:
+        "200":
+          description: Cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+
+  /cart/items:
+    post:
+      operationId: addToCart
+      tags: [cart]
+      summary: Add item to cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CartItemInput"
+      responses:
+        "201":
+          description: Added
+
+  /cart/items/{id}:
+    delete:
+      operationId: removeFromCart
+      tags: [cart]
+      summary: Remove item from cart
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Removed
+
+  /cart/checkout:
+    post:
+      operationId: checkout
+      tags: [cart]
+      summary: Checkout cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutInput"
+      responses:
+        "200":
+          description: Order confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResult"
+
+  # PROFILE
+  /users/me/bids:
+    get:
+      operationId: listMyBids
+      tags: [profile]
+      summary: Current user's bid history
+      responses:
+        "200":
+          description: Bids
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MyBid"
+
+  /users/me/orders:
+    get:
+      operationId: listMyOrders
+      tags: [profile]
+      summary: Current user's purchase history
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MyOrder"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    User:
+      type: object
+      required: [id, login, email, role, createdAt]
+      properties:
+        id:
+          type: number
+        login:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, dealer, collector]
+        isBanned:
+          type: boolean
+        banReason:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    LoginInput:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+
+    RegisterInput:
+      type: object
+      required: [token, email, password]
+      properties:
+        token:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        login:
+          type: string
+
+    InviteInfo:
+      type: object
+      required: [role, token]
+      properties:
+        role:
+          type: string
+        token:
+          type: string
+        usedAt:
+          type: ["string", "null"]
+
+    InviteLink:
+      type: object
+      required: [id, token, role, createdAt]
+      properties:
+        id:
+          type: number
+        token:
+          type: string
+        role:
+          type: string
+        usedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    InviteLinkInput:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [dealer, collector]
+
+    Theme:
+      type: object
+      required: [id, name, slug, order]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        slug:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        order:
+          type: number
+        isActive:
+          type: boolean
+
+    Group:
+      type: object
+      required: [id, themeId, name, order]
+      properties:
+        id:
+          type: number
+        themeId:
+          type: number
+        name:
+          type: string
+        order:
+          type: number
+        lotsCount:
+          type: number
+
+    Lot:
+      type: object
+      required: [id, title, sectionType, groupId, themeId, status, createdAt]
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        sectionType:
+          type: string
+          enum: [auction, exclusive, liquidation]
+        groupId:
+          type: number
+        themeId:
+          type: number
+        status:
+          type: string
+          enum: [active, sold, expired, blitzed]
+        format:
+          type: string
+          enum: [fixed, range]
+        price:
+          type: ["number", "null"]
+        marketValue:
+          type: ["number", "null"]
+        bidMin:
+          type: ["number", "null"]
+        bidMax:
+          type: ["number", "null"]
+        expiresAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        createdBy:
+          type: number
+        bidsCount:
+          type: number
+        isRestored:
+          type: ["string", "null"]
+        hasBell:
+          type: ["string", "null"]
+        hasDefects:
+          type: ["string", "null"]
+        weight:
+          type: ["string", "null"]
+
+    LotList:
+      type: object
+      required: [lots, total]
+      properties:
+        lots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Lot"
+        total:
+          type: number
+
+    LotInput:
+      type: object
+      required: [title, sectionType, groupId, themeId, format]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        sectionType:
+          type: string
+        groupId:
+          type: number
+        themeId:
+          type: number
+        format:
+          type: string
+        price:
+          type: number
+        marketValue:
+          type: number
+        expiresAt:
+          type: string
+        isRestored:
+          type: string
+        hasBell:
+          type: string
+        hasDefects:
+          type: string
+        weight:
+          type: string
+
+    LotPatch:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        expiresAt:
+          type: string
+
+    PurchaseInput:
+      type: object
+      required: [buyerInfo]
+      properties:
+        buyerInfo:
+          type: string
+
+    Bid:
+      type: object
+      required: [id, lotId, userId, amount, createdAt]
+      properties:
+        id:
+          type: number
+        lotId:
+          type: number
+        userId:
+          type: number
+        amount:
+          type: number
+        isBlitz:
+          type: boolean
+        createdAt:
+          type: string
+
+    MyBid:
+      type: object
+      required: [id, lotId, lotTitle, lotStatus, amount, createdAt]
+      properties:
+        id:
+          type: number
+        lotId:
+          type: number
+        lotTitle:
+          type: string
+        lotStatus:
+          type: string
+        amount:
+          type: number
+        isBlitz:
+          type: boolean
+        createdAt:
+          type: string
+
+    MyOrder:
+      type: object
+      required: [id, lotId, lotTitle, amount, createdAt]
+      properties:
+        id:
+          type: number
+        lotId:
+          type: number
+        lotTitle:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        amount:
+          type: number
+        createdAt:
+          type: string
+
+    BidInput:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+
+    Sticker:
+      type: object
+      required: [id, title, budget, createdAt, expiresAt, status]
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        budget:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        expiresAt:
+          type: string
+        status:
+          type: string
+          enum: [active, closed]
+        createdBy:
+          type: number
+        authorLogin:
+          type: ["string", "null"]
+
+    StickerInput:
+      type: object
+      required: [title, budget, expiresAt, contactEmail]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        budget:
+          type: number
+        expiresAt:
+          type: string
+        contactEmail:
+          type: string
+        imageUrl:
+          type: string
+
+    StickerResponseInput:
+      type: object
+      required: [comment]
+      properties:
+        comment:
+          type: string
+        imageUrl:
+          type: string
+
+    NewsItem:
+      type: object
+      required: [id, title, content, createdAt]
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        content:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        isPinned:
+          type: boolean
+        createdAt:
+          type: string
+
+    NewsInput:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        imageUrl:
+          type: string
+        isPinned:
+          type: boolean
+
+    NewsPatch:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        imageUrl:
+          type: string
+        isPinned:
+          type: boolean
+
+    ActivityItem:
+      type: object
+      required: [id, type, description, createdAt]
+      properties:
+        id:
+          type: number
+        type:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+        timeAgo:
+          type: string
+
+    OnlineStats:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: number
+
+    DashboardStats:
+      type: object
+      required: [totalUsers, activeLots, activeStickers, totalThemes]
+      properties:
+        totalUsers:
+          type: number
+        activeLots:
+          type: number
+        activeStickers:
+          type: number
+        totalThemes:
+          type: number
+
+    Cart:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+        total:
+          type: number
+
+    CartItem:
+      type: object
+      required: [id, lotId, title, price]
+      properties:
+        id:
+          type: number
+        lotId:
+          type: number
+        title:
+          type: string
+        price:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+
+    CartItemInput:
+      type: object
+      required: [lotId]
+      properties:
+        lotId:
+          type: number
+
+    CheckoutInput:
+      type: object
+      required: [buyerInfo]
+      properties:
+        buyerInfo:
+          type: string
+
+    CheckoutResult:
+      type: object
+      required: [success, orderId]
+      properties:
+        success:
+          type: boolean
+        orderId:
+          type: number
+
+    UserPatch:
+      type: object
+      properties:
+        role:
+          type: string
+        isBanned:
+          type: boolean
+        banReason:
+          type: string
+        login:
+          type: string
